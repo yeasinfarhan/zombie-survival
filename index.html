@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07080a">
+  <title>60-Second Zombie Survival</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- The whole game world is drawn on this one canvas -->
+  <canvas id="game"></canvas>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-left">
+        <div class="stat health" id="healthStat">
+          <span class="icon">❤️</span>
+          <div class="bar"><div id="healthFill" class="fill"></div></div>
+          <span id="healthText" class="num">100</span>
+        </div>
+        <div class="stat ammo" id="ammoStat">
+          <span class="icon">🔫</span>
+          <span id="ammoText" class="num big">12</span>
+          <span class="sep">/</span>
+          <span id="reserveText" class="num dim">60</span>
+        </div>
+        <div id="reloadBox" class="stat reload hidden">
+          <span class="reload-label">RELOADING...</span>
+          <div class="bar"><div id="reloadFill" class="fill"></div></div>
+          <span id="reloadPct" class="num">0%</span>
+        </div>
+        <div id="powerBox" class="stat power hidden">
+          <span>🔥 RAPID FIRE</span>
+          <span id="powerText" class="num">05.0s</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div class="timer-label">SURVIVE</div>
+        <div id="timerText" class="timer">60.0</div>
+      </div>
+
+      <div class="hud-right">
+        <div class="stat"><span class="icon">🧟</span><span id="killsText" class="num">0</span></div>
+        <div class="stat score"><span class="icon">★</span><span id="scoreText" class="num">0</span></div>
+        <div class="hud-buttons">
+          <button id="soundBtn" class="icon-btn" data-action="toggle-sound" title="Sound (M)">🔊</button>
+          <button id="pauseBtn" class="icon-btn" data-action="pause" title="Pause (ESC)">⏸</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="centerMsg" class="center-msg"></div>
+    <div id="reloadPrompt" class="reload-prompt hidden">
+      <span id="reloadPromptText">RELOAD!</span>
+      <small id="reloadPromptHint">press R</small>
+    </div>
+  </div>
+
+  <!-- ===================== MOBILE CONTROLS ===================== -->
+  <div id="touchControls" class="hidden">
+    <div id="joystick"><div id="joyKnob"></div></div>
+    <button id="touchReload" class="touch-btn small">R</button>
+    <button id="touchFire" class="touch-btn fire">FIRE</button>
+  </div>
+
+  <!-- ===================== MAIN MENU ===================== -->
+  <div id="menuScreen" class="screen menu">
+    <div class="menu-content">
+      <div class="eyebrow">60-SECOND</div>
+      <h1 class="title">ZOMBIE<br>SURVIVAL</h1>
+      <p class="subtitle">SURVIVE FOR 60 SECONDS</p>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="start">▶ START GAME</button>
+        <button class="btn" data-action="howto">❓ HOW TO PLAY</button>
+        <button class="btn" data-action="settings">⚙ SETTINGS</button>
+      </div>
+      <div class="best">BEST SCORE <span id="bestScore">0</span></div>
+    </div>
+  </div>
+
+  <!-- ===================== HOW TO PLAY ===================== -->
+  <div id="howtoScreen" class="screen overlay hidden">
+    <div class="panel wide">
+      <h2>❓ HOW TO PLAY</h2>
+      <p class="lead">The horde is coming. Stay alive until the timer hits <b>0</b>.</p>
+      <div class="howto-grid">
+        <div class="howto-col">
+          <h3>Desktop</h3>
+          <ul class="keys">
+            <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</li>
+            <li><kbd>Mouse</kbd> Aim</li>
+            <li><kbd>Left click</kbd> Shoot (hold to keep firing)</li>
+            <li><kbd>R</kbd> Reload</li>
+            <li><kbd>ESC</kbd> Pause &nbsp; <kbd>M</kbd> Sound</li>
+          </ul>
+          <h3>Mobile</h3>
+          <ul class="keys">
+            <li>Left stick: move</li>
+            <li><b>FIRE</b>: shoots &amp; auto-aims at the nearest zombie</li>
+            <li><b>R</b>: reload</li>
+          </ul>
+        </div>
+        <div class="howto-col">
+          <h3>Pickups</h3>
+          <ul class="items">
+            <li><span class="chip green">✚</span> <b>Medkit</b> +25 health</li>
+            <li><span class="chip amber">▮▮</span> <b>Ammo</b> +12 reserve bullets</li>
+            <li><span class="chip orange">🔥</span> <b>Rapid Fire</b> 5 seconds of fast shooting</li>
+          </ul>
+          <h3>The horde</h3>
+          <ul class="items">
+            <li><span class="chip zn"></span> <b>Normal</b> slow, steady (+100)</li>
+            <li><span class="chip zf"></span> <b>Fast</b> arrives at 0:30 (+150)</li>
+            <li><span class="chip zt"></span> <b>Tank</b> arrives at 0:15 (+500)</li>
+          </ul>
+        </div>
+      </div>
+      <p class="tip">Tip: keep moving and don't get cornered. The last 10 seconds are brutal.</p>
+      <button class="btn" data-action="back">← BACK</button>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <div id="settingsScreen" class="screen overlay hidden">
+    <div class="panel">
+      <h2>⚙ SETTINGS</h2>
+      <div class="settings-list">
+        <button class="toggle" data-action="toggle-sound"><span>🔊 Sound</span><b id="setSound">ON</b></button>
+        <button class="toggle" data-action="toggle-shake"><span>📳 Screen shake</span><b id="setShake">ON</b></button>
+        <button class="toggle" data-action="toggle-autoreload"><span>🔁 Auto reload</span><b id="setAuto">OFF</b></button>
+      </div>
+      <button class="btn" data-action="back">← BACK</button>
+    </div>
+  </div>
+
+  <!-- ===================== PAUSE ===================== -->
+  <div id="pauseScreen" class="screen overlay hidden">
+    <div class="panel">
+      <h2 class="pause-title">GAME PAUSED</h2>
+      <p class="muted">Time left: <b id="pauseTime">60.0</b>s</p>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="resume">▶ RESUME</button>
+        <button class="btn" data-action="restart">↻ RESTART</button>
+        <button class="btn" data-action="settings">⚙ SETTINGS</button>
+        <button class="btn" data-action="menu">⌂ MAIN MENU</button>
+      </div>
+      <p class="hint">Press ESC to resume</p>
+    </div>
+  </div>
+
+  <!-- ===================== GAME OVER / WIN ===================== -->
+  <div id="endScreen" class="screen overlay hidden">
+    <div class="panel end-panel">
+      <h2 id="endTitle" class="end-title">💀 YOU DIED</h2>
+      <p id="endSubtitle" class="muted">The horde got you.</p>
+      <div class="stats">
+        <span>Time survived</span><b id="statTime">0</b>
+        <span>Zombies killed</span><b id="statKills">0</b>
+        <span id="statHealthLabel">Health remaining</span><b id="statHealth">0</b>
+        <span>Accuracy</span><b id="statAcc">0%</b>
+      </div>
+      <div id="scoreBreakdown" class="breakdown"></div>
+      <div class="final-score">
+        <div class="label">FINAL SCORE</div>
+        <div id="statScore" class="value">0</div>
+        <div id="newBest" class="new-best hidden">★ NEW BEST!</div>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="start">↻ PLAY AGAIN</button>
+        <button class="btn" data-action="menu">⌂ MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: plain <script> tags (no modules) so the game also runs from file:// -->
+  <script src="js/utils.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/arena.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
